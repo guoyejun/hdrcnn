@@ -105,7 +105,7 @@ if os.path.isdir(FLAGS.im_dir):
               if os.path.isfile(os.path.join(FLAGS.im_dir, name))]
 
 # Placeholder for image input
-x = tf.placeholder(tf.float32, shape=[1, sy, sx, 3])
+x = tf.placeholder(tf.float32, shape=[1, sy, sx, 3], name='x')
 
 # HDR reconstruction autoencoder model
 print_("Network setup:\n")

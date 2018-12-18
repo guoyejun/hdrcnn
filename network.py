@@ -85,8 +85,11 @@ def get_final(network, x_in):
     y_predict = tf.exp(y_predict)-1.0/255.0
 
     # Alpha blending
-    y_final = (1-alpha)*x_lin + alpha*y_predict
-    
+    #y_final = (1-alpha)*x_lin + alpha*y_predict
+    y1 = (1-alpha)*x_lin
+    y2 = alpha*y_predict
+    y_final = tf.add(y1, y2, name='y')
+
     return y_final
 
 
