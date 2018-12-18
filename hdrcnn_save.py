@@ -123,51 +123,7 @@ load_params = tl.files.load_npz(name=FLAGS.params)
 tl.files.assign_params(sess, load_params, net)
 print_("\tdone\n")
 
-if not os.path.exists(FLAGS.out_dir):
-    os.makedirs(FLAGS.out_dir)
-
-print_("\nStarting prediction...\n\n")
-k = 0
-for i in range(len(frames)):
-    print("Frame %d: '%s'"%(i,frames[i]))
-
-    try:
-        # Read frame
-        print_("\tReading...")
-        x_buffer = img_io.readLDR(frames[i], (sy,sx), True, FLAGS.scaling)
-        print_("\tdone")
-
-        print_("\t(Saturation: %0.2f%%)\n" % (100.0*(x_buffer>=1).sum()/x_buffer.size), 'm')
-
-        # Run prediction.
-        # The gamma value is used to allow for boosting/reducing the intensity of
-        # the reconstructed highlights. If y = f(x) is the reconstruction, the gamma
-        # g alters this according to y = f(x^(1/g))^g
-        print_("\tInference...")
-        feed_dict = {x: np.power(np.maximum(x_buffer, 0.0), 1.0/FLAGS.gamma)}
-        y_predict = sess.run([y], feed_dict=feed_dict)
-        y_predict = np.power(np.maximum(y_predict, 0.0), FLAGS.gamma)
-        print_("\tdone\n")
-
-        # Gamma corrected output
-        y_gamma = np.power(np.maximum(y_predict, 0.0), 0.5)
-
-        # Write to disc
-        print_("\tWriting...")
-        k += 1;
-        img_io.writeLDR(x_buffer, '%s/%06d_in.png' % (FLAGS.out_dir, k), -3)
-        img_io.writeLDR(y_gamma, '%s/%06d_out.png' % (FLAGS.out_dir, k), -3)
-        img_io.writeEXR(y_predict, '%s/%06d_out.exr' % (FLAGS.out_dir, k))
-        print_("\tdone\n")
-
-    except img_io.IOException as e:
-        print_("\n\t\tWarning! ", 'w', True)
-        print_("%s\n"%e, 'w')
-    except Exception as e:    
-        print_("\n\t\tError: ", 'e', True)
-        print_("%s\n"%e, 'e')
-
-print_("Done!\n")
-
-sess.close()
+graph = tf.graph_util.convert_variables_to_constants(sess, sess.graph_def, ["y"])
+tf.train.write_graph(graph, '.', 'graph.pb', as_text=False)
+exit()
 
