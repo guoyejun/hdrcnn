@@ -104,24 +104,18 @@ if os.path.isdir(FLAGS.im_dir):
               for name in sorted(os.listdir(FLAGS.im_dir))
               if os.path.isfile(os.path.join(FLAGS.im_dir, name))]
 
-# Placeholder for image input
-x = tf.placeholder(tf.float32, shape=[1, sy, sx, 3], name='x')
-
 # HDR reconstruction autoencoder model
 print_("Network setup:\n")
-net = network.model(x)
 
-# The CNN prediction (this also includes blending with input image x)
-y = network.get_final(net, x)
+new_input = tf.placeholder(tf.float32, shape=[1, sy, sx, 3])
+
+f = open('./graph.pb', 'rb')
+graph_def = tf.GraphDef()
+graph_def.ParseFromString(f.read())
+y = tf.import_graph_def(graph_def, input_map={'x:0':new_input}, return_elements=['y:0'])
 
 # TensorFlow session for running inference
 sess = tf.InteractiveSession()
-
-# Load trained CNN weights
-print_("\nLoading trained parameters from '%s'..."%FLAGS.params)
-load_params = tl.files.load_npz(name=FLAGS.params)
-tl.files.assign_params(sess, load_params, net)
-print_("\tdone\n")
 
 if not os.path.exists(FLAGS.out_dir):
     os.makedirs(FLAGS.out_dir)
@@ -144,7 +138,7 @@ for i in range(len(frames)):
         # the reconstructed highlights. If y = f(x) is the reconstruction, the gamma
         # g alters this according to y = f(x^(1/g))^g
         print_("\tInference...")
-        feed_dict = {x: np.power(np.maximum(x_buffer, 0.0), 1.0/FLAGS.gamma)}
+        feed_dict = {new_input: np.power(np.maximum(x_buffer, 0.0), 1.0/FLAGS.gamma)}
         y_predict = sess.run([y], feed_dict=feed_dict)
         y_predict = np.power(np.maximum(y_predict, 0.0), FLAGS.gamma)
         print_("\tdone\n")
